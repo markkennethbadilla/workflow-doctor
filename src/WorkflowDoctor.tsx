@@ -34,7 +34,7 @@ export default function WorkflowDoctor() {
     const [activeTab, setActiveTab] = useState<"visual" | "json">("visual")
     const [workflow, setWorkflow] = useState<Workflow | null>(null)
     const [loading, setLoading] = useState(false)
-    const [analysis, setAnalysis] = useState<string | null>(null)
+    const [analysis, setAnalysis] = useState<{ text: string, model: string } | null>(null)
     const [healthScore, setHealthScore] = useState(0)
 
     // Load demo data on mount
@@ -57,7 +57,7 @@ export default function WorkflowDoctor() {
 
         const res = await generateAIResponse(prompt, "You are an expert n8n workflow engineer. Be concise.")
 
-        setAnalysis(res.text)
+        setAnalysis({ text: res.text, model: res.model || "AI Model" })
 
         // Deterministic Health Score Calculation
         // Base score starts at 100 and deducts for patterns
@@ -260,10 +260,11 @@ export default function WorkflowDoctor() {
                                     <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                         <SparklesIcon className="w-4 h-4 text-orange-500" />
                                         AI Optimization Tips
+                                        <span className="text-[10px] font-normal text-slate-400 ml-auto">({analysis.model})</span>
                                     </h3>
                                     <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed space-y-2 prose prose-sm dark:prose-invert max-w-none">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {analysis}
+                                            {analysis.text}
                                         </ReactMarkdown>
                                     </div>
                                 </div>

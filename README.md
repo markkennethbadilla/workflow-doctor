@@ -4,14 +4,13 @@ AI-powered diagnostic tool for n8n workflows that treats automation workflows as
 
 ## Overview
 
-Interactive diagnostic tool that uploads n8n JSON exports, visualizes node graphs using React Flow, and uses local AI (Ministral-3B) to suggest performance optimizations and fix error handling gaps.
+Interactive diagnostic tool that uploads n8n JSON exports, visualizes node graphs using React Flow, and uses local AI to suggest performance optimizations and fix error handling gaps.
 
 ## Tech Stack
 
 - **n8n Integration**: JSON workflow parsing
 - **AI Tooling**: Local LLM for diagnostics
 - **React Flow**: Interactive graph visualization
-- **Ministral-3B**: Fine-tuned on n8n documentation
 
 ## The Problem
 
@@ -19,7 +18,7 @@ Complex n8n workflows often contain hidden logic bombs—unhandled errors, race 
 
 ## The Solution
 
-An AI Linter that parses the workflow's JSON structure into a graph. It uses a local model (Ministral-3B) fine-tuned on n8n documentation to analyze node interactions and suggest structural fixes.
+An AI Linter that parses the workflow's JSON structure into a graph. It uses a local model fine-tuned on n8n documentation to analyze node interactions and suggest structural fixes.
 
 ## Business Value
 
@@ -32,7 +31,7 @@ An AI Linter that parses the workflow's JSON structure into a graph. It uses a l
 The analysis engine combines **Large Language Models** with **Deterministic Heuristics**:
 
 1.  **Deterministic Scoring**: Analyzes the graph topology for concrete anti-patterns (loops, missing error handlers, trigger hygiene) to generate a quantitative health score.
-2.  **LLM Insights**: Uses local AI (Ministral-3B) to provide qualitative suggestions (e.g., "Replace complex function node with built-in filter").
+2.  **LLM Insights**: Uses local AI to provide qualitative suggestions (e.g., "Replace complex function node with built-in filter").
 
 ## Features
 
