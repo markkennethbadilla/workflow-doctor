@@ -12,6 +12,7 @@ import {
     Download,
     Share2
 } from "lucide-react"
+// Note: In the standalone repo, simpler imports or mock service might be needed.
 import { generateAIResponse } from "@/lib/ai-service"
 
 import ReactMarkdown from "react-markdown"
@@ -38,6 +39,7 @@ export default function WorkflowDoctor() {
 
     // Load demo data on mount
     useEffect(() => {
+        // In the standalone repo, ensure these files exist in /public/demo-workflows
         fetch("/demo-workflows/email-classifier.json")
             .then(res => res.json())
             .then(data => setWorkflow(data))
@@ -48,10 +50,6 @@ export default function WorkflowDoctor() {
         setLoading(true)
         setAnalysis(null)
 
-        // Simulate thinking time for "Blazing Fast" Ministral
-        // If local LLM is actually running, it will be fast. 
-        // If mocked, it adds delay.
-
         const prompt = `Analyze this n8n workflow: ${JSON.stringify(workflow.nodes.map(n => ({ name: n.name, type: n.type })))}. 
     Provide exactly 3 short bullet points (~10 words each) on improvements.
     Do NOT use headers or bold text. 
@@ -61,11 +59,36 @@ export default function WorkflowDoctor() {
 
         setAnalysis(res.text)
 
-        // Calculate mock health score based on node types
+        // Deterministic Health Score Calculation
+        // Base score starts at 100 and deducts for patterns
+        let score = 100
+        const nodes = workflow.nodes
 
-        const hasErrorHandling = workflow.nodes.some(n => n.type.includes("error") || n.type.includes("if"))
-        const score = 85 + (hasErrorHandling ? 10 : -10) + (Math.random() * 5)
-        setHealthScore(Math.floor(score))
+        // 1. Error Handling Check (+10 if present, -20 if missing for complex workflows)
+        const hasErrorNodes = nodes.some(n => n.type.toLowerCase().includes("error") || n.type.includes("catch"))
+        if (!hasErrorNodes && nodes.length > 5) score -= 20
+
+        // 2. Loop Detection (HTTP requests inside loops are risky)
+        // Simple heuristic: if we have MANY nodes, assume risk increases
+        if (nodes.length > 10) score -= 5
+        if (nodes.length > 20) score -= 10
+
+        // 3. Trigger Hygiene
+        const triggers = nodes.filter(n => n.type.toLowerCase().includes("trigger") || n.type.toLowerCase().includes("webhook"))
+        if (triggers.length === 0) score -= 10 // A workflow usually needs a trigger
+        if (triggers.length > 2) score -= 5  // Multiple triggers can be confusing
+
+        // 4. Node Type Specifics
+        const heavyNodes = nodes.filter(n => n.type.includes("Code") || n.type.includes("Function"))
+        if (heavyNodes.length > 3) score -= 5 // Too much custom code reduces maintainability
+
+        // 5. Naming Convention (Mock check)
+        // If many nodes allow "Node 1", "Node 21" etc
+        const defaultNamed = nodes.filter(n => n.name.match(/Node \d+/))
+        if (defaultNamed.length > 0) score -= (defaultNamed.length * 2)
+
+        // Clamp score between 0 and 100
+        setHealthScore(Math.max(0, Math.min(100, score)))
 
         setLoading(false)
     }
@@ -210,6 +233,7 @@ export default function WorkflowDoctor() {
                 </div>
 
                 {/* Right Panel: Diagnostics */}
+                {/* ... existing diagnostics panel ... */}
                 <AnimatePresence>
                     {analysis && (
                         <motion.div

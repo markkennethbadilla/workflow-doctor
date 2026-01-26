@@ -29,7 +29,10 @@ An AI Linter that parses the workflow's JSON structure into a graph. It uses a l
 
 ## AI Integration
 
-The AI doesn't just look at text; it understands the *topology* of the graph. It can spot issues like 'loops without breaks' or 'parallel execution limits' by analyzing the node connections.
+The analysis engine combines **Large Language Models** with **Deterministic Heuristics**:
+
+1.  **Deterministic Scoring**: Analyzes the graph topology for concrete anti-patterns (loops, missing error handlers, trigger hygiene) to generate a quantitative health score.
+2.  **LLM Insights**: Uses local AI (Ministral-3B) to provide qualitative suggestions (e.g., "Replace complex function node with built-in filter").
 
 ## Features
 

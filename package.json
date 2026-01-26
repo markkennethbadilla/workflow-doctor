@@ -1,0 +1,32 @@
+{
+    "name": "workflow-doctor",
+    "version": "1.0.0",
+    "description": "AI-powered diagnostic and optimization tool for n8n workflows",
+    "main": "src/WorkflowDoctor.tsx",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "ai",
+        "n8n",
+        "workflow",
+        "automation",
+        "diagnostics"
+    ],
+    "author": "Mark Kenneth Badilla",
+    "license": "MIT",
+    "dependencies": {
+        "framer-motion": "^11.0.0",
+        "lucide-react": "^0.300.0",
+        "react-markdown": "^9.0.0",
+        "remark-gfm": "^4.0.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "typescript": "^5.0.0"
+    }
+}
