@@ -52,8 +52,14 @@ export default function WorkflowDoctor() {
 
         const prompt = `Analyze this n8n workflow: ${JSON.stringify(workflow.nodes.map(n => ({ name: n.name, type: n.type })))}. 
     Provide exactly 3 short bullet points (~10 words each) on improvements.
-    Do NOT use headers or bold text. 
-    Output as a simple list.`
+    CRITICAL: You MUST start every line with a hyphen (-).
+    
+    Example:
+    - Add error handling node.
+    - Remove redundant webhooks.
+    - Optimize HTTP request batching.
+    
+    Your Output (Exactly 3 bullets):`
 
         const res = await generateAIResponse(prompt, "You are an expert n8n workflow engineer. Be concise.")
 
