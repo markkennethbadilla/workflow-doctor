@@ -12,7 +12,6 @@ import {
     Download,
     Share2
 } from "lucide-react"
-// Note: In the standalone repo, simpler imports or mock service might be needed.
 import { generateAIResponse } from "@/lib/ai-service"
 
 import ReactMarkdown from "react-markdown"
@@ -34,12 +33,12 @@ export default function WorkflowDoctor() {
     const [activeTab, setActiveTab] = useState<"visual" | "json">("visual")
     const [workflow, setWorkflow] = useState<Workflow | null>(null)
     const [loading, setLoading] = useState(false)
-    const [analysis, setAnalysis] = useState<{ text: string, model: string } | null>(null)
+    const [analysis, setAnalysis] = useState<string | null>(null)
     const [healthScore, setHealthScore] = useState(0)
+    const [error, setError] = useState<string | null>(null)
 
     // Load demo data on mount
     useEffect(() => {
-        // In the standalone repo, ensure these files exist in /public/demo-workflows
         fetch("/demo-workflows/email-classifier.json")
             .then(res => res.json())
             .then(data => setWorkflow(data))
@@ -49,6 +48,11 @@ export default function WorkflowDoctor() {
         if (!workflow) return
         setLoading(true)
         setAnalysis(null)
+        setError(null)
+
+        // Simulate thinking time for "Blazing Fast" Ministral
+        // If local LLM is actually running, it will be fast. 
+        // If mocked, it adds delay.
 
         const prompt = `Analyze this n8n workflow: ${JSON.stringify(workflow.nodes.map(n => ({ name: n.name, type: n.type })))}. 
     Provide exactly 3 short bullet points (~10 words each) on improvements.
@@ -63,35 +67,52 @@ export default function WorkflowDoctor() {
 
         const res = await generateAIResponse(prompt, "You are an expert n8n workflow engineer. Be concise.")
 
-        setAnalysis({ text: res.text, model: res.model || "AI Model" })
+        // Check for rate limiting
+        if (res.source === "rate-limited") {
+            setError("⏳ Whoa, slow down! You're clicking faster than my neurons can fire. Take a breather and try again in a minute.")
+            setLoading(false)
+            return
+        }
+
+        if (res.source === "error") {
+            setError(res.text)
+            setLoading(false)
+            return
+        }
+
+        setAnalysis(res.text)
 
         // Deterministic Health Score Calculation
         // Base score starts at 100 and deducts for patterns
         let score = 100
         const nodes = workflow.nodes
 
-        // 1. Error Handling Check (+10 if present, -20 if missing for complex workflows)
-        const hasErrorNodes = nodes.some(n => n.type.toLowerCase().includes("error") || n.type.includes("catch"))
-        if (!hasErrorNodes && nodes.length > 5) score -= 20
+        // 1. Error Handling Check (-15 if missing for ANY workflow with external calls)
+        const hasErrorNodes = nodes.some(n => n.type.toLowerCase().includes("error") || n.type.includes("catch") || n.type.includes("errorTrigger"))
+        const hasExternalCalls = nodes.some(n => n.type.includes("httpRequest") || n.type.includes("webhook") || n.type.includes("slack") || n.type.includes("discord"))
+        if (!hasErrorNodes && hasExternalCalls) score -= 15
 
-        // 2. Loop Detection (HTTP requests inside loops are risky)
-        // Simple heuristic: if we have MANY nodes, assume risk increases
-        if (nodes.length > 10) score -= 5
-        if (nodes.length > 20) score -= 10
+        // 2. Workflow Complexity
+        if (nodes.length > 5) score -= 5
+        if (nodes.length > 8) score -= 5
+        if (nodes.length > 12) score -= 5
 
         // 3. Trigger Hygiene
         const triggers = nodes.filter(n => n.type.toLowerCase().includes("trigger") || n.type.toLowerCase().includes("webhook"))
-        if (triggers.length === 0) score -= 10 // A workflow usually needs a trigger
-        if (triggers.length > 2) score -= 5  // Multiple triggers can be confusing
+        if (triggers.length === 0) score -= 10
+        if (triggers.length > 2) score -= 10  // Multiple triggers = confusion
 
-        // 4. Node Type Specifics
-        const heavyNodes = nodes.filter(n => n.type.includes("Code") || n.type.includes("Function"))
-        if (heavyNodes.length > 3) score -= 5 // Too much custom code reduces maintainability
+        // 4. Custom Code Nodes (reduce maintainability)
+        const codeNodes = nodes.filter(n => n.type.includes("code") || n.type.includes("Code") || n.type.includes("Function"))
+        if (codeNodes.length > 0) score -= (codeNodes.length * 5)
 
-        // 5. Naming Convention (Mock check)
-        // If many nodes allow "Node 1", "Node 21" etc
-        const defaultNamed = nodes.filter(n => n.name.match(/Node \d+/))
-        if (defaultNamed.length > 0) score -= (defaultNamed.length * 2)
+        // 5. Default Naming Convention (poor documentation)
+        const defaultNamed = nodes.filter(n => n.name.match(/Node \d+/i))
+        if (defaultNamed.length > 0) score -= (defaultNamed.length * 5)
+
+        // 6. HTTP Request nodes without retry logic assumed
+        const httpNodes = nodes.filter(n => n.type.includes("httpRequest"))
+        if (httpNodes.length > 0) score -= (httpNodes.length * 3)
 
         // Clamp score between 0 and 100
         setHealthScore(Math.max(0, Math.min(100, score)))
@@ -239,8 +260,32 @@ export default function WorkflowDoctor() {
                 </div>
 
                 {/* Right Panel: Diagnostics */}
-                {/* ... existing diagnostics panel ... */}
                 <AnimatePresence>
+                    {error && (
+                        <motion.div
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 320, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            className="border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden flex flex-col"
+                        >
+                            <div className="p-6">
+                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700/50">
+                                    <div className="flex gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm text-amber-800 dark:text-amber-200">{error}</p>
+                                            <button
+                                                onClick={() => setError(null)}
+                                                className="mt-2 text-xs text-amber-700 dark:text-amber-300 hover:underline"
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
                     {analysis && (
                         <motion.div
                             initial={{ width: 0, opacity: 0 }}
@@ -266,11 +311,10 @@ export default function WorkflowDoctor() {
                                     <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                         <SparklesIcon className="w-4 h-4 text-orange-500" />
                                         AI Optimization Tips
-                                        <span className="text-[10px] font-normal text-slate-400 ml-auto">({analysis.model})</span>
                                     </h3>
                                     <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed space-y-2 prose prose-sm dark:prose-invert max-w-none">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {analysis.text}
+                                            {analysis}
                                         </ReactMarkdown>
                                     </div>
                                 </div>

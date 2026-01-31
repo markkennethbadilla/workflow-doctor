@@ -1,0 +1,148 @@
+{
+    "name": "Lead Enrichment Pipeline",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "new-lead",
+                "options": {}
+            },
+            "name": "New Lead Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [100, 300]
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "backup-trigger",
+                "options": {}
+            },
+            "name": "Backup Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [100, 500]
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "manual-trigger",
+                "options": {}
+            },
+            "name": "Manual Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [100, 700]
+        },
+        {
+            "parameters": {
+                "url": "https://person.clearbit.com/v2/people/find",
+                "method": "GET",
+                "authentication": "headerAuth"
+            },
+            "name": "Clearbit Enrichment",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [300, 300]
+        },
+        {
+            "parameters": {
+                "mode": "mergeByIndex"
+            },
+            "name": "Merge Data",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 1,
+            "position": [500, 300]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "sheetId": "123456",
+                "range": "Leads!A:Z"
+            },
+            "name": "Save to CRM",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 1,
+            "position": [700, 300]
+        },
+        {
+            "parameters": {
+                "content": "New Enriched Lead: {{ $json.name.fullName }}"
+            },
+            "name": "Slack Notify",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [700, 500]
+        },
+        {
+            "parameters": {
+                "url": "https://api.hubspot.com/crm/v3/objects/contacts",
+                "method": "POST"
+            },
+            "name": "HubSpot Sync",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [900, 300]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Custom lead scoring logic\nconst score = items[0].json.company?.employees > 100 ? 'enterprise' : 'smb';\nreturn [{ json: { ...items[0].json, leadScore: score } }];"
+            },
+            "name": "Lead Scoring",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [500, 500]
+        },
+        {
+            "parameters": {
+                "url": "https://api.sendgrid.com/v3/mail/send",
+                "method": "POST"
+            },
+            "name": "Email Sequence",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [700, 700]
+        },
+        {
+            "parameters": {
+                "jsCode": "return items;"
+            },
+            "name": "Node 3",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [900, 500]
+        }
+    ],
+    "connections": {
+        "New Lead Webhook": {
+            "main": [[{ "node": "Clearbit Enrichment", "type": "main", "index": 0 }]]
+        },
+        "Backup Webhook": {
+            "main": [[{ "node": "Clearbit Enrichment", "type": "main", "index": 0 }]]
+        },
+        "Manual Trigger": {
+            "main": [[{ "node": "Clearbit Enrichment", "type": "main", "index": 0 }]]
+        },
+        "Clearbit Enrichment": {
+            "main": [[{ "node": "Merge Data", "type": "main", "index": 0 }]]
+        },
+        "Merge Data": {
+            "main": [
+                [{ "node": "Save to CRM", "type": "main", "index": 0 }],
+                [{ "node": "Lead Scoring", "type": "main", "index": 0 }]
+            ]
+        },
+        "Save to CRM": {
+            "main": [[{ "node": "HubSpot Sync", "type": "main", "index": 0 }]]
+        },
+        "Lead Scoring": {
+            "main": [
+                [{ "node": "Slack Notify", "type": "main", "index": 0 }],
+                [{ "node": "Email Sequence", "type": "main", "index": 0 }]
+            ]
+        },
+        "Slack Notify": {
+            "main": [[{ "node": "Node 3", "type": "main", "index": 0 }]]
+        }
+    }
+}

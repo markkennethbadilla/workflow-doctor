@@ -1,0 +1,111 @@
+{
+    "name": "AI Email Classifier",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webhook-email",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [100, 300]
+        },
+        {
+            "parameters": {
+                "jsCode": "return items.map(i => ({ json: { ...i.json, timestamp: Date.now() } }))"
+            },
+            "name": "Node 1",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [200, 300]
+        },
+        {
+            "parameters": {
+                "model": "gemini-pro",
+                "prompt": "Classify this email: {{$json.body.content}}"
+            },
+            "name": "Gemini AI",
+            "type": "n8n-nodes-base.googleGemini",
+            "typeVersion": 1,
+            "position": [350, 300]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [{ "value1": "={{$json.classification}}", "value2": "urgent" }]
+                }
+            },
+            "name": "If Urgent",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [500, 300]
+        },
+        {
+            "parameters": {
+                "content": "URGENT EMAIL: {{$json.body.content}}"
+            },
+            "name": "Discord Alert",
+            "type": "n8n-nodes-base.discord",
+            "typeVersion": 1,
+            "position": [700, 200]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "sheetId": "123456",
+                "range": "A:C"
+            },
+            "name": "Google Sheets",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 1,
+            "position": [700, 400]
+        },
+        {
+            "parameters": {
+                "jsCode": "const result = []; for (const item of items) { result.push(item); } return result;"
+            },
+            "name": "Node 2",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [850, 300]
+        },
+        {
+            "parameters": {
+                "url": "https://api.example.com/log",
+                "method": "POST"
+            },
+            "name": "HTTP Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [1000, 300]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [[{ "node": "Node 1", "type": "main", "index": 0 }]]
+        },
+        "Node 1": {
+            "main": [[{ "node": "Gemini AI", "type": "main", "index": 0 }]]
+        },
+        "Gemini AI": {
+            "main": [[{ "node": "If Urgent", "type": "main", "index": 0 }]]
+        },
+        "If Urgent": {
+            "main": [
+                [{ "node": "Discord Alert", "type": "main", "index": 0 }],
+                [{ "node": "Google Sheets", "type": "main", "index": 0 }]
+            ]
+        },
+        "Discord Alert": {
+            "main": [[{ "node": "Node 2", "type": "main", "index": 0 }]]
+        },
+        "Google Sheets": {
+            "main": [[{ "node": "Node 2", "type": "main", "index": 0 }]]
+        },
+        "Node 2": {
+            "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]]
+        }
+    }
+}
